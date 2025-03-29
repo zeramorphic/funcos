@@ -1,6 +1,7 @@
 use crate::{
     colour::Colour,
     linalg::{rect::Rect, vec::Vec2},
+    psf::Psf,
 };
 
 /// A data structure that semantically owns a framebuffer.
@@ -22,6 +23,16 @@ impl VideoBuffer {
             height: framebuffer.height() as usize,
             pitch: framebuffer.pitch() as usize,
         }
+    }
+
+    /// Returns the width of the video buffer in pixels.
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    /// Returns the height of the video buffer in pixels.
+    pub fn height(&self) -> usize {
+        self.height
     }
 
     /// Without bounds checking, draw the given pixel.
@@ -54,13 +65,22 @@ impl VideoBuffer {
         }
     }
 
-    /// Returns the width of the video buffer in pixels.
-    pub fn width(&self) -> usize {
-        self.width
-    }
-
-    /// Returns the height of the video buffer in pixels.
-    pub fn height(&self) -> usize {
-        self.height
+    pub unsafe fn draw_glyph(&mut self, pos: Vec2<usize>, font: &Psf, index: usize) {
+        let mut addr = self.addr.byte_add(self.pitch * pos.y).add(pos.x);
+        let height = font.header().character_size;
+        let mut glyph_data = font.font_data().add(height as usize * index);
+        let fg = Colour::WHITE;
+        let bg = Colour::BLACK;
+        for _ in 0..height {
+            for x in 0..8 {
+                addr.add(x).write(if (*glyph_data) & (1 << (7 - x)) > 0 {
+                    fg
+                } else {
+                    bg
+                });
+            }
+            addr = addr.byte_add(self.pitch);
+            glyph_data = glyph_data.add(1);
+        }
     }
 }
