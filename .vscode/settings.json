@@ -1,0 +1,4 @@
+{
+    "__comment__": "The following line effectively disables the `test` feature flag for rust-analyzer, which we aren't using since it depends on `std`",
+    "rust-analyzer.check.allTargets": false
+}

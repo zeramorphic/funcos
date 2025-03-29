@@ -1,0 +1,4 @@
+# Rust output directory.
+/target
+# Build directory for Limine and other tools.
+/build
