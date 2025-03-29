@@ -1,4 +1,4 @@
-use num_traits::{one, zero, One, Zero};
+use crate::num_traits::{One, Zero};
 
 #[derive(Clone, Copy)]
 pub struct Vec2<T> {
@@ -15,27 +15,27 @@ impl<T> Vec2<T> {
     where
         T: Zero,
     {
-        Self::new(zero(), zero())
+        Self::new(Zero::ZERO, Zero::ZERO)
     }
 
     pub fn one() -> Self
     where
         T: One,
     {
-        Self::new(one(), one())
+        Self::new(One::ONE, One::ONE)
     }
 
     pub fn unit_x() -> Self
     where
         T: Zero + One,
     {
-        Self::new(one(), zero())
+        Self::new(One::ONE, Zero::ZERO)
     }
 
     pub fn unit_y() -> Self
     where
         T: Zero + One,
     {
-        Self::new(zero(), one())
+        Self::new(Zero::ZERO, One::ONE)
     }
 }

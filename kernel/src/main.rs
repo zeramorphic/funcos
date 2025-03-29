@@ -4,6 +4,7 @@
 pub mod colour;
 pub mod linalg;
 pub mod video;
+pub mod num_traits;
 
 use core::arch::asm;
 
