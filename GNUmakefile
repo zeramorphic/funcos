@@ -41,7 +41,19 @@ build/limine/limine:
 
 .PHONY: kernel
 kernel:
+ifeq ($(MODE),release)
+	cargo build --release -p kernel
+else
 	cargo build -p kernel
+endif
+
+.PHONY: asm
+asm:
+ifeq ($(MODE),release)
+	RUSTFLAGS="--emit asm" cargo build --release -p kernel
+else
+	RUSTFLAGS="--emit asm" cargo build -p kernel
+endif
 
 build/$(IMAGE_NAME).iso: build/limine/limine kernel
 	rm -rf build/iso_root

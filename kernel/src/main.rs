@@ -1,10 +1,17 @@
 #![no_std]
 #![no_main]
 
+pub mod colour;
+pub mod linalg;
+pub mod video;
+
 use core::arch::asm;
 
+use colour::Colour;
 use limine::request::{FramebufferRequest, RequestsEndMarker, RequestsStartMarker};
 use limine::BaseRevision;
+use linalg::rect::Rect;
+use linalg::vec::Vec2;
 
 /// Sets the base revision to the latest revision supported by the crate.
 /// See specification for further info.
@@ -33,19 +40,19 @@ fn kmain() -> ! {
 
     if let Some(framebuffer_response) = FRAMEBUFFER_REQUEST.get_response() {
         if let Some(framebuffer) = framebuffer_response.framebuffers().next() {
-            for i in 0..100_u64 {
-                // Calculate the pixel offset using the framebuffer information we obtained above.
-                // We skip `i` scanlines (pitch is provided in bytes) and add `i * 4` to skip `i` pixels forward.
-                let pixel_offset = i * framebuffer.pitch() + i * 4;
-
-                // Write 0xFFFFFFFF to the provided pixel offset to fill it white.
-                unsafe {
-                    framebuffer
-                        .addr()
-                        .add(pixel_offset as usize)
-                        .cast::<u32>()
-                        .write(0xFFFFFFFF)
-                };
+            let mut buffer = video::VideoBuffer::from_limine(framebuffer);
+            loop {
+                for colour in [Colour::RED, Colour::GREEN, Colour::BLUE] {
+                    unsafe {
+                        buffer.draw_rect(
+                            Rect::new_unchecked(
+                                Vec2::zero(),
+                                Vec2::new(buffer.width(), buffer.height()),
+                            ),
+                            colour,
+                        );
+                    }
+                }
             }
         }
     }
