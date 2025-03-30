@@ -1,16 +1,21 @@
 #![no_std]
 #![no_main]
+#![feature(custom_test_frameworks)]
+#![test_runner(crate::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
 pub mod colour;
 pub mod linalg;
 pub mod num_traits;
 pub mod print;
 pub mod screen_font;
+pub mod serial;
 pub mod terminal_video;
 pub mod video;
 
 use core::arch::asm;
 
+use colour::Colour;
 use limine::request::{FramebufferRequest, RequestsEndMarker, RequestsStartMarker};
 use limine::BaseRevision;
 use terminal_video::TerminalVideoBuffer;
@@ -37,6 +42,8 @@ static _END_MARKER: RequestsEndMarker = RequestsEndMarker::new();
 
 #[no_mangle]
 fn kmain() -> ! {
+    serial_println!("FuncOS kernel main function called.");
+
     // All limine requests must also be referenced in a called function, otherwise they may be removed by the linker.
     assert!(BASE_REVISION.is_supported());
 
@@ -44,12 +51,35 @@ fn kmain() -> ! {
         if let Some(framebuffer) = framebuffer_response.framebuffers().next() {
             terminal_video::TerminalVideoBuffer::new(video::VideoBuffer::from_limine(framebuffer))
                 .make_default();
-
-            TerminalVideoBuffer::with_default(|terminal| {
-                terminal.clear_screen();
-            });
-            println!("Hello, world! 0.1 + 0.2 = {}", 0.1 + 0.2);
         }
+    }
+
+    serial_println!("Framebuffer obtained.");
+
+    TerminalVideoBuffer::with_default(|terminal| {
+        terminal.clear_screen();
+    });
+
+    println!("Hello, world! 0.1 + 0.2 = {}", 0.1 + 0.2);
+    println!("Testing enabled: {}", cfg!(test));
+
+
+    #[cfg(test)]
+    test_main();
+
+    panic!("Shutting down kernel.");
+}
+
+#[panic_handler]
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    unsafe {
+        TerminalVideoBuffer::with_default_unchecked(|terminal| {
+            use core::fmt::Write;
+            terminal.set_background(Colour::BLACK);
+            terminal.set_foreground(Colour::RED);
+            // Ignore any errors produced here - we're too far gone to recover at this point.
+            let _ = writeln!(terminal, "{info}");
+        });
     }
 
     loop {
@@ -59,7 +89,22 @@ fn kmain() -> ! {
     }
 }
 
-#[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
-    loop {}
+#[cfg(test)]
+pub fn test_runner(tests: &[&dyn Fn()]) {
+    println!("Running {} tests.", tests.len());
+    for (i, test) in tests.iter().enumerate() {
+        println!("* [{}/{}]", i + 1, tests.len());
+        test();
+    }
+    println!("Tests finished!");
+}
+
+#[test_case]
+fn test1() {
+    assert_eq!(1, 3);
+}
+
+#[test_case]
+fn test2() {
+    assert_eq!(4, 5);
 }

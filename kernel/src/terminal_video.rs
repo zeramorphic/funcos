@@ -67,6 +67,20 @@ impl TerminalVideoBuffer {
         f(TERMINAL.lock().as_mut().unwrap())
     }
 
+    /// # Safety
+    ///
+    /// This function is extremely unsafe and only use it in very special circumstances!
+    pub unsafe fn with_default_unchecked<T>(f: impl FnOnce(&mut TerminalVideoBuffer) -> T) -> T {
+        loop {
+            match TERMINAL.try_lock() {
+                Some(mut terminal) => return f(terminal.as_mut().unwrap()),
+                None => {
+                    TERMINAL.force_unlock();
+                }
+            }
+        }
+    }
+
     /// Returns the width of this terminal in characters.
     pub fn width(&self) -> usize {
         self.video_buffer.width() / 8
@@ -169,6 +183,14 @@ impl TerminalVideoBuffer {
         for c in string {
             self.put_char(*c);
         }
+    }
+
+    pub fn set_foreground(&mut self, colour: Colour) {
+        self.foreground = colour;
+    }
+
+    pub fn set_background(&mut self, colour: Colour) {
+        self.background = colour;
     }
 }
 
