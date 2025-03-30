@@ -16,6 +16,10 @@ override IMAGE_NAME := funcos-x86_64
 # Debug or release mode.
 $(call USER_VARIABLE,MODE,debug)
 
+ifndef VERBOSE
+.SILENT:
+endif
+
 .PHONY: all
 all: build/$(IMAGE_NAME).iso
 
@@ -26,6 +30,7 @@ run: build/$(IMAGE_NAME).iso
 		-cdrom build/$(IMAGE_NAME).iso \
 		-boot d \
 		-serial stdio \
+		-device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 		$(QEMUFLAGS)
 
 .PHONY: test
@@ -35,6 +40,7 @@ test: build/$(TESTS_NAME).iso
 		-cdrom build/$(TESTS_NAME).iso \
 		-boot d \
 		-serial stdio \
+		-device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 		$(QEMUFLAGS)
 
 build/limine/limine:

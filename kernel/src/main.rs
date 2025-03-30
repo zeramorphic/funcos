@@ -8,12 +8,11 @@ pub mod colour;
 pub mod linalg;
 pub mod num_traits;
 pub mod print;
+pub mod qemu;
 pub mod screen_font;
 pub mod serial;
 pub mod terminal_video;
 pub mod video;
-
-use core::arch::asm;
 
 use colour::Colour;
 use limine::request::{FramebufferRequest, RequestsEndMarker, RequestsStartMarker};
@@ -42,7 +41,7 @@ static _END_MARKER: RequestsEndMarker = RequestsEndMarker::new();
 
 #[no_mangle]
 fn kmain() -> ! {
-    serial_println!("FuncOS kernel main function called.");
+    serial_println!("\n---\nFuncOS kernel main function called.\n---");
 
     // All limine requests must also be referenced in a called function, otherwise they may be removed by the linker.
     assert!(BASE_REVISION.is_supported());
@@ -63,7 +62,6 @@ fn kmain() -> ! {
     println!("Hello, world! 0.1 + 0.2 = {}", 0.1 + 0.2);
     println!("Testing enabled: {}", cfg!(test));
 
-
     #[cfg(test)]
     test_main();
 
@@ -75,28 +73,38 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     unsafe {
         TerminalVideoBuffer::with_default_unchecked(|terminal| {
             use core::fmt::Write;
+
+            // First, print the panic info to the serial output
+            // so that we can see the error even if the OS crashes.
+            serial_println!("{}", info);
             terminal.set_background(Colour::BLACK);
             terminal.set_foreground(Colour::RED);
+
             // Ignore any errors produced here - we're too far gone to recover at this point.
             let _ = writeln!(terminal, "{info}");
         });
     }
 
-    loop {
-        unsafe {
-            asm!("hlt");
+    if cfg!(test) {
+        qemu::exit_qemu(qemu::QemuExitCode::Success);
+    } else {
+        loop {
+            unsafe {
+                core::arch::asm!("hlt");
+            }
         }
     }
 }
 
 #[cfg(test)]
 pub fn test_runner(tests: &[&dyn Fn()]) {
-    println!("Running {} tests.", tests.len());
+    serial_println!("Running {} tests.", tests.len());
     for (i, test) in tests.iter().enumerate() {
-        println!("* [{}/{}]", i + 1, tests.len());
+        serial_println!("* [{}/{}]", i + 1, tests.len());
         test();
     }
-    println!("Tests finished!");
+    serial_println!("Tests finished!");
+    qemu::exit_qemu(qemu::QemuExitCode::Success);
 }
 
 #[test_case]
