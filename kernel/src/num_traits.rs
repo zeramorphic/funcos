@@ -14,6 +14,9 @@ pub trait WrappingSub {
     fn wrapping_sub(self, other: Self) -> Self;
 }
 
+/// Marker trait for types where `0` is the least element.
+pub trait Unsigned {}
+
 macro_rules! impl_num_traits {
     ($t:ident) => {
         impl Zero for $t {
@@ -37,3 +40,15 @@ macro_rules! impl_num_traits {
 }
 
 impl_num_traits!(u8 u16 u32 u64 u128 usize i8 i16 i32 i64 i128 isize);
+
+macro_rules! impl_unsigned {
+    ($t:ident) => {
+        impl Unsigned for $t {}
+    };
+    ($t:ident $($tail:tt)*) => {
+        impl_unsigned!($t);
+        impl_unsigned!($($tail)*);
+    };
+}
+
+impl_unsigned!(u8 u16 u32 u64 u128 usize);

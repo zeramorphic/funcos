@@ -1,18 +1,19 @@
 use bytemuck::{checked::from_bytes, Pod, Zeroable};
 
 /// This struct references a PC screen font (version 1) stored statically in the kernel binary.
+/// The glyphs are 8 pixels wide and `header.character_size` pixels tall.
 ///
 /// # Invariants
 ///
 /// `font_data` must be a pointer to the start of `256 * header.character_size` bytes of font data.
-pub struct Psf {
-    header: PsfHeader,
+pub struct ScreenFont {
+    header: ScreenFontHeader,
     font_data: *const u8,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
-pub struct PsfHeader {
+pub struct ScreenFontHeader {
     magic: [u8; 2],
     pub font_mode: FontMode,
     pub character_size: u8,
@@ -33,10 +34,10 @@ bitflags::bitflags! {
     }
 }
 
-impl Psf {
+impl ScreenFont {
     /// Parse a PC screen font from data stored in the binary.
     pub fn from_data(data: &'static [u8]) -> Self {
-        let header: PsfHeader = *from_bytes(&data[0..4]);
+        let header: ScreenFontHeader = *from_bytes(&data[0..4]);
         if header.magic != [0x36, 0x04] {
             panic!(
                 "PC screen font magic number incorrect, got {:?}",
@@ -58,7 +59,7 @@ impl Psf {
         Self::from_data(include_bytes!("../data/fonts/Lat2-TerminusBold14.psf"))
     }
 
-    pub fn header(&self) -> PsfHeader {
+    pub fn header(&self) -> ScreenFontHeader {
         self.header
     }
 

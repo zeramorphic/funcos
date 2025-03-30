@@ -1,7 +1,7 @@
 use crate::{
     colour::Colour,
     linalg::{rect::Rect, vec::Vec2},
-    psf::Psf,
+    screen_font::ScreenFont,
 };
 
 /// A data structure that semantically owns a framebuffer.
@@ -35,12 +35,16 @@ impl VideoBuffer {
         self.height
     }
 
+    pub fn screen_rect(&self) -> Rect<usize> {
+        Rect::new_zero_to_max(Vec2::new(self.width, self.height))
+    }
+
     /// Without bounds checking, draw the given pixel.
     ///
     /// # Safety
     ///
-    /// We must have `0 <= x < width` and `0 <= y < height`.
-    pub unsafe fn draw_pixel(&mut self, pos: Vec2<usize>, colour: Colour) {
+    /// We must have `x < width` and `y < height`.
+    pub unsafe fn draw_pixel_unchecked(&mut self, pos: Vec2<usize>, colour: Colour) {
         self.addr
             .byte_add(self.pitch * pos.y)
             .add(pos.x)
@@ -52,8 +56,8 @@ impl VideoBuffer {
     ///
     /// # Safety
     ///
-    /// `0 <= min.x <= max.x < width` and `0 <= min.y <= max.x < height`.
-    pub unsafe fn draw_rect(&mut self, rect: Rect<usize>, colour: Colour) {
+    /// `min.x <= max.x <= width` and `min.y <= max.x <= height`.
+    pub unsafe fn draw_rect_unchecked(&mut self, rect: Rect<usize>, colour: Colour) {
         let mut addr = self.addr;
         let width = rect.width();
         let height = rect.height();
@@ -65,18 +69,49 @@ impl VideoBuffer {
         }
     }
 
-    pub unsafe fn draw_glyph(&mut self, pos: Vec2<usize>, font: &Psf, index: usize) {
+    /// Draw a solid rectangle of the given colour.
+    /// The maximum on the `rect` is treated as exclusive bounds.
+    ///
+    /// # Panics
+    ///
+    /// Panics unless `min.x <= max.x <= width` and `min.y <= max.x <= height`.
+    pub fn draw_rect(&mut self, rect: Rect<usize>, colour: Colour) {
+        assert!(rect.min().x <= rect.max().x);
+        assert!(rect.max().x <= self.width);
+        assert!(rect.min().y <= rect.max().y);
+        assert!(rect.max().y <= self.height);
+        unsafe {
+            self.draw_rect_unchecked(rect, colour);
+        }
+    }
+
+    /// Fills the entire buffer with the given colour.
+    pub fn fill_buffer(&mut self, colour: Colour) {
+        unsafe {
+            self.draw_rect_unchecked(self.screen_rect(), colour);
+        }
+    }
+
+    /// # Safety
+    ///
+    /// `pos.x + 8 < width`, `0 <= pos.y < height`.
+    pub unsafe fn draw_glyph_unchecked(
+        &mut self,
+        pos: Vec2<usize>,
+        font: &ScreenFont,
+        index: u8,
+        foreground: Colour,
+        background: Colour,
+    ) {
         let mut addr = self.addr.byte_add(self.pitch * pos.y).add(pos.x);
         let height = font.header().character_size;
-        let mut glyph_data = font.font_data().add(height as usize * index);
-        let fg = Colour::WHITE;
-        let bg = Colour::BLACK;
+        let mut glyph_data = font.font_data().add(height as usize * index as usize);
         for _ in 0..height {
             for x in 0..8 {
                 addr.add(x).write(if (*glyph_data) & (1 << (7 - x)) > 0 {
-                    fg
+                    foreground
                 } else {
-                    bg
+                    background
                 });
             }
             addr = addr.byte_add(self.pitch);

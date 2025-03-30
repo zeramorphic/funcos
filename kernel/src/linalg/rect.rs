@@ -1,4 +1,4 @@
-use crate::num_traits::WrappingSub;
+use crate::num_traits::{Unsigned, WrappingSub, Zero};
 
 use super::vec::Vec2;
 
@@ -22,6 +22,16 @@ impl<T> Rect<T> {
     /// but further operations down the line will rely on this property being upheld.
     pub const unsafe fn new_unchecked(min: Vec2<T>, max: Vec2<T>) -> Self {
         Self { min, max }
+    }
+
+    pub fn new_zero_to_max(max: Vec2<T>) -> Self
+    where
+        T: Zero + Unsigned,
+    {
+        Self {
+            min: Vec2::zero(),
+            max,
+        }
     }
 
     pub const fn min(&self) -> Vec2<T>
