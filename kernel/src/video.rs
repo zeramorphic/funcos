@@ -1,3 +1,7 @@
+use core::ptr::NonNull;
+
+use volatile::{access::WriteOnly, VolatilePtr};
+
 use crate::{
     colour::Colour,
     linalg::{rect::Rect, vec::Vec2},
@@ -9,16 +13,21 @@ use crate::{
 /// The pixel at `(x, y)` is at byte offset `x * 4 + pitch * y` from `addr`.
 pub struct VideoBuffer {
     /// This struct owns the space from `addr` up to `addr + height * pitch`.
-    addr: *mut Colour,
+    addr: VolatilePtr<'static, Colour, WriteOnly>,
     width: usize,
     height: usize,
     pitch: usize,
 }
 
+/// Video buffers are [Send] but not [Sync], since they are unsynchronised.
+unsafe impl Send for VideoBuffer {}
+
 impl VideoBuffer {
     pub fn from_limine(framebuffer: limine::framebuffer::Framebuffer) -> Self {
         Self {
-            addr: framebuffer.addr().cast(),
+            addr: unsafe {
+                VolatilePtr::new(NonNull::new_unchecked(framebuffer.addr().cast())).restrict()
+            },
             width: framebuffer.width() as usize,
             height: framebuffer.height() as usize,
             pitch: framebuffer.pitch() as usize,
@@ -46,8 +55,7 @@ impl VideoBuffer {
     /// We must have `x < width` and `y < height`.
     pub unsafe fn draw_pixel_unchecked(&mut self, pos: Vec2<usize>, colour: Colour) {
         self.addr
-            .byte_add(self.pitch * pos.y)
-            .add(pos.x)
+            .map(|ptr| ptr.byte_add(self.pitch * pos.y).add(pos.x))
             .write(colour);
     }
 
@@ -63,9 +71,9 @@ impl VideoBuffer {
         let height = rect.height();
         for _ in 0..height {
             for x in 0..width {
-                addr.add(x).write(colour);
+                addr.map(|ptr| ptr.add(x)).write(colour);
             }
-            addr = addr.byte_add(self.pitch);
+            addr = addr.map(|ptr| ptr.byte_add(self.pitch));
         }
     }
 
@@ -103,18 +111,21 @@ impl VideoBuffer {
         foreground: Colour,
         background: Colour,
     ) {
-        let mut addr = self.addr.byte_add(self.pitch * pos.y).add(pos.x);
+        let mut addr = self
+            .addr
+            .map(|ptr| ptr.byte_add(self.pitch * pos.y).add(pos.x));
         let height = font.header().character_size;
         let mut glyph_data = font.font_data().add(height as usize * index as usize);
         for _ in 0..height {
             for x in 0..8 {
-                addr.add(x).write(if (*glyph_data) & (1 << (7 - x)) > 0 {
-                    foreground
-                } else {
-                    background
-                });
+                addr.map(|ptr| ptr.add(x))
+                    .write(if (*glyph_data) & (1 << (7 - x)) > 0 {
+                        foreground
+                    } else {
+                        background
+                    });
             }
-            addr = addr.byte_add(self.pitch);
+            addr = addr.map(|ptr| ptr.byte_add(self.pitch));
             glyph_data = glyph_data.add(1);
         }
     }

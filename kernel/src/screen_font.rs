@@ -11,6 +11,12 @@ pub struct ScreenFont {
     font_data: *const u8,
 }
 
+/// Screen fonts are Send and Sync since they just read from read-only data.
+unsafe impl Send for ScreenFont {}
+
+/// Screen fonts are Send and Sync since they just read from read-only data.
+unsafe impl Sync for ScreenFont {}
+
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 pub struct ScreenFontHeader {

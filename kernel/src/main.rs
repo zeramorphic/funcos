@@ -4,17 +4,16 @@
 pub mod colour;
 pub mod linalg;
 pub mod num_traits;
+pub mod print;
 pub mod screen_font;
 pub mod terminal_video;
 pub mod video;
 
 use core::arch::asm;
 
-use colour::Colour;
 use limine::request::{FramebufferRequest, RequestsEndMarker, RequestsStartMarker};
 use limine::BaseRevision;
-use linalg::rect::Rect;
-use linalg::vec::Vec2;
+use terminal_video::TerminalVideoBuffer;
 
 /// Sets the base revision to the latest revision supported by the crate.
 /// See specification for further info.
@@ -43,12 +42,13 @@ fn kmain() -> ! {
 
     if let Some(framebuffer_response) = FRAMEBUFFER_REQUEST.get_response() {
         if let Some(framebuffer) = framebuffer_response.framebuffers().next() {
-            let buffer = video::VideoBuffer::from_limine(framebuffer);
-            let mut terminal = terminal_video::TerminalVideoBuffer::new(buffer);
-            terminal.clear_screen();
-            for c in b"Hello, world!" {
-                terminal.put_char_raw(*c);
-            }
+            terminal_video::TerminalVideoBuffer::new(video::VideoBuffer::from_limine(framebuffer))
+                .make_default();
+
+            TerminalVideoBuffer::with_default(|terminal| {
+                terminal.clear_screen();
+            });
+            println!("Hello, world! 0.1 + 0.2 = {}", 0.1 + 0.2);
         }
     }
 
