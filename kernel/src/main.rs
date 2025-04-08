@@ -1,10 +1,12 @@
 #![no_std]
 #![no_main]
-#![feature(custom_test_frameworks)]
+#![feature(custom_test_frameworks, abi_x86_interrupt)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 pub mod colour;
+pub mod gdt;
+pub mod interrupts;
 pub mod linalg;
 pub mod num_traits;
 pub mod print;
@@ -55,6 +57,19 @@ fn kmain() -> ! {
 
     serial_println!("Framebuffer obtained.");
 
+    gdt::init();
+    interrupts::init_idt();
+
+    serial_println!("GDT and IDT loaded.");
+
+    // unsafe {
+    //     *(0xdeadbeef as *mut u8) = 4;
+    // }
+
+    // x86_64::instructions::interrupts::int3();
+
+    stack_overflow(0);
+
     TerminalVideoBuffer::with_default(|terminal| {
         terminal.clear_screen();
     });
@@ -66,6 +81,11 @@ fn kmain() -> ! {
     test_main();
 
     panic!("Shutting down kernel.");
+}
+
+fn stack_overflow(i: i32) {
+    serial_println!("Iteration {}.", i);
+    stack_overflow(i + 1);
 }
 
 #[panic_handler]

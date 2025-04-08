@@ -11,7 +11,6 @@ override USER_VARIABLE = $(if $(filter $(origin $(1)),default undefined),$(eval 
 $(call USER_VARIABLE,QEMUFLAGS,-m 2G)
 
 override IMAGE_NAME := funcos-x86_64
-override IMAGE_NAME := funcos-x86_64
 
 # Debug or release mode.
 $(call USER_VARIABLE,MODE,debug)
@@ -31,6 +30,26 @@ run: build/$(IMAGE_NAME).iso
 		-boot d \
 		-serial stdio \
 		-device isa-debug-exit,iobase=0xf4,iosize=0x04 \
+		-no-reboot \
+		-no-shutdown \
+		-D debug.log \
+		-d int \
+		$(QEMUFLAGS)
+
+# To use, open up `gdb` in the root working directory.
+# This will use the `.gdbinit` file.
+.PHONY: debug
+debug: build/$(IMAGE_NAME).iso
+	qemu-system-x86_64 \
+		-M q35 \
+		-cdrom build/$(IMAGE_NAME).iso \
+		-boot d \
+		-serial stdio \
+		-device isa-debug-exit,iobase=0xf4,iosize=0x04 \
+		-no-reboot \
+		-no-shutdown \
+		-d int \
+		-s -S \
 		$(QEMUFLAGS)
 
 .PHONY: test
@@ -41,6 +60,7 @@ test: build/$(TESTS_NAME).iso
 		-boot d \
 		-serial stdio \
 		-device isa-debug-exit,iobase=0xf4,iosize=0x04 \
+		-no-reboot \
 		$(QEMUFLAGS)
 
 build/limine/limine:
