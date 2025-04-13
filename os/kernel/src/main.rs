@@ -47,13 +47,11 @@ fn kmain(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
         terminal.clear_screen();
     });
 
-    unsafe {
-        *(0xdeadbeef as *mut u8) = 4;
+    #[cfg(test)]
+    {
+        test_main();
+        qemu::exit_qemu(qemu::QemuExitCode::Success);
     }
-
-    x86_64::instructions::interrupts::int3();
-
-    stack_overflow(0);
 
     println!("Hello, world! 0.1 + 0.2 = {}", 0.1 + 0.2);
     println!("Testing enabled: {}", cfg!(test));
@@ -62,11 +60,6 @@ fn kmain(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     test_main();
 
     panic!("Shutting down kernel.");
-}
-
-fn stack_overflow(i: i32) {
-    // serial_println!("Iteration {}.", i);
-    stack_overflow(i + 1);
 }
 
 #[panic_handler]
@@ -88,7 +81,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     }
 
     if cfg!(test) {
-        qemu::exit_qemu(qemu::QemuExitCode::Success);
+        qemu::exit_qemu(qemu::QemuExitCode::Failed);
     } else {
         loop {
             unsafe {

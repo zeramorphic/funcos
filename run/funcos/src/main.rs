@@ -5,14 +5,27 @@ use clap::Parser;
 struct Args {
     #[arg(short, long)]
     debug: bool,
+
+    #[arg(short, long)]
+    test: bool,
 }
 
+// Clippy doesn't understand that we'll add new env vars in `build.rs`.
+#[allow(clippy::if_same_then_else)]
 fn main() {
     let args = Args::parse();
 
     // read env variables that were set in build script
-    let uefi_path = env!("UEFI_PATH");
-    let bios_path = env!("BIOS_PATH");
+    let uefi_path = if args.test {
+        env!("UEFI_PATH_TESTS")
+    } else {
+        env!("UEFI_PATH")
+    };
+    let bios_path = if args.test {
+        env!("BIOS_PATH_TESTS")
+    } else {
+        env!("BIOS_PATH")
+    };
 
     // choose whether to start the UEFI or BIOS image
     let uefi = true;
@@ -23,7 +36,9 @@ fn main() {
     cmd.args(["-D", "debug.log"]);
     cmd.args(["-d", "int"]);
     cmd.arg("-no-reboot");
-    cmd.arg("-no-shutdown");
+    if !args.test {
+        cmd.arg("-no-shutdown");
+    }
     if args.debug {
         cmd.args(["-S", "-s"]);
     }
