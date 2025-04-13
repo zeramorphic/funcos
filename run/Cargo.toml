@@ -1,0 +1,4 @@
+[workspace]
+resolver = "2"
+members = ["funcos"]
+default-members = ["funcos"]

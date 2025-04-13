@@ -6,6 +6,8 @@ fn main() {
     let out_dir = PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
     let kernel = PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap())
         .join("..")
+        .join("..")
+        .join("os")
         .join("target")
         .join("x86_64-funcos")
         .join("debug")

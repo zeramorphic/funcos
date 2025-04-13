@@ -4,6 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+clap = { version = "4.5.36", features = ["derive"] }
 ovmf-prebuilt = "0.1.0-alpha.1"
 
 [build-dependencies]

@@ -1,4 +1,15 @@
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(short, long)]
+    debug: bool,
+}
+
 fn main() {
+    let args = Args::parse();
+
     // read env variables that were set in build script
     let uefi_path = env!("UEFI_PATH");
     let bios_path = env!("BIOS_PATH");
@@ -13,6 +24,9 @@ fn main() {
     cmd.args(["-d", "int"]);
     cmd.arg("-no-reboot");
     cmd.arg("-no-shutdown");
+    if args.debug {
+        cmd.args(["-S", "-s"]);
+    }
 
     if uefi {
         cmd.arg("-bios").arg(ovmf_prebuilt::ovmf_pure_efi());

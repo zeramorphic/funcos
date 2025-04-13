@@ -1,4 +1,5 @@
-# Rust output directory.
-/target
+# Rust output directories.
+/os/target
+/run/target
 # Debug log for QEMU.
 debug.log
