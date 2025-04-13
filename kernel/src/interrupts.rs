@@ -1,4 +1,4 @@
-use crate::{gdt, println, serial_println};
+use crate::{gdt, serial::COM1_SERIAL, serial_println};
 use spin::Lazy;
 use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 
@@ -19,17 +19,20 @@ pub fn init_idt() {
 }
 
 extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
-    println!("EXCEPTION: BREAKPOINT\n{:#?}", stack_frame);
+    serial_println!("EXCEPTION: BREAKPOINT\n{:#?}", stack_frame);
 }
 
 extern "x86-interrupt" fn page_fault_handler(stack_frame: InterruptStackFrame) {
-    println!("EXCEPTION: PAGE FAULT\n{:#?}", stack_frame);
+    serial_println!("EXCEPTION: PAGE FAULT\n{:#?}", stack_frame);
 }
 
 extern "x86-interrupt" fn double_fault_handler(
     stack_frame: InterruptStackFrame,
     _error_code: u64,
 ) -> ! {
+    unsafe {
+        COM1_SERIAL.force_unlock();
+    }
     serial_println!("DOUBLE FAULT!");
     panic!("EXCEPTION: DOUBLE FAULT\n{:#?}", stack_frame);
 }

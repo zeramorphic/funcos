@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
-members = ["kernel"]
+members = ["kernel", "funcos"]
+default-members = ["funcos"]
 
 [profile.dev]
 panic = "abort"
