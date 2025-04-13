@@ -53,13 +53,12 @@ fn kmain(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
         qemu::exit_qemu(qemu::QemuExitCode::Success);
     }
 
-    println!("Hello, world! 0.1 + 0.2 = {}", 0.1 + 0.2);
-    println!("Testing enabled: {}", cfg!(test));
-
-    #[cfg(test)]
-    test_main();
-
-    panic!("Shutting down kernel.");
+    #[cfg(not(test))]
+    {
+        println!("Hello, world! 0.1 + 0.2 = {}", 0.1 + 0.2);
+        println!("Testing enabled: {}", cfg!(test));
+        panic!("Shutting down kernel.");
+    }
 }
 
 #[panic_handler]
@@ -100,14 +99,4 @@ pub fn test_runner(tests: &[&dyn Fn()]) {
     }
     serial_println!("Tests finished!");
     qemu::exit_qemu(qemu::QemuExitCode::Success);
-}
-
-#[test_case]
-fn test1() {
-    assert_eq!(1, 3);
-}
-
-#[test_case]
-fn test2() {
-    assert_eq!(4, 5);
 }

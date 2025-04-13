@@ -18,13 +18,13 @@ fn main() {
 
         let config = BootConfig::default();
 
-        let uefi_path = out_dir.join("uefi.img");
+        let uefi_path = out_dir.join(format!("uefi{suffix}.img"));
         bootloader::UefiBoot::new(&kernel)
             .set_boot_config(&config)
             .create_disk_image(&uefi_path)
             .unwrap();
 
-        let bios_path = out_dir.join("bios.img");
+        let bios_path = out_dir.join(format!("bios{suffix}.img"));
         bootloader::BiosBoot::new(&kernel)
             .set_boot_config(&config)
             .create_disk_image(&bios_path)
