@@ -23,14 +23,18 @@ pub struct VideoBuffer {
 unsafe impl Send for VideoBuffer {}
 
 impl VideoBuffer {
-    pub fn from_limine(framebuffer: limine::framebuffer::Framebuffer) -> Self {
+    pub fn from_bootloader(framebuffer: bootloader_api::info::FrameBuffer) -> Self {
+        let width = framebuffer.info().width;
+        let height = framebuffer.info().height;
+        let pitch = framebuffer.info().stride * core::mem::size_of::<Colour>();
         Self {
             addr: unsafe {
-                VolatilePtr::new(NonNull::new_unchecked(framebuffer.addr().cast())).restrict()
+                VolatilePtr::new(NonNull::new_unchecked(framebuffer.into_buffer()).cast())
+                    .restrict()
             },
-            width: framebuffer.width() as usize,
-            height: framebuffer.height() as usize,
-            pitch: framebuffer.pitch() as usize,
+            width,
+            height,
+            pitch,
         }
     }
 

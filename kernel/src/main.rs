@@ -13,11 +13,11 @@ pub mod print;
 pub mod qemu;
 pub mod screen_font;
 pub mod serial;
-// pub mod terminal_video;
-// pub mod video;
+pub mod terminal_video;
+pub mod video;
 
 use colour::Colour;
-// use terminal_video::TerminalVideoBuffer;
+use terminal_video::TerminalVideoBuffer;
 
 const CONFIG: bootloader_api::BootloaderConfig = {
     let mut config = bootloader_api::BootloaderConfig::new_default();
@@ -30,15 +30,10 @@ bootloader_api::entry_point!(kmain, config = &CONFIG);
 fn kmain(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     serial_println!("\n---\nFuncOS kernel main function called.\n---");
 
-    // // All limine requests must also be referenced in a called function, otherwise they may be removed by the linker.
-    // assert!(BASE_REVISION.is_supported());
-
-    // if let Some(framebuffer_response) = FRAMEBUFFER_REQUEST.get_response() {
-    //     if let Some(framebuffer) = framebuffer_response.framebuffers().next() {
-    //         terminal_video::TerminalVideoBuffer::new(video::VideoBuffer::from_limine(framebuffer))
-    //             .make_default();
-    //     }
-    // }
+    if let Some(framebuffer) = boot_info.framebuffer.take() {
+        terminal_video::TerminalVideoBuffer::new(video::VideoBuffer::from_bootloader(framebuffer))
+            .make_default();
+    }
 
     serial_println!("Framebuffer obtained.");
 
@@ -47,20 +42,21 @@ fn kmain(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
 
     serial_println!("GDT and IDT loaded.");
 
-    // unsafe {
-    //     *(0xdeadbeef as *mut u8) = 4;
-    // }
+    TerminalVideoBuffer::with_default(|terminal| {
+        terminal.set_background(Colour::from_rgb(10, 15, 20));
+        terminal.clear_screen();
+    });
 
-    // x86_64::instructions::interrupts::int3();
+    unsafe {
+        *(0xdeadbeef as *mut u8) = 4;
+    }
+
+    x86_64::instructions::interrupts::int3();
 
     stack_overflow(0);
 
-    // TerminalVideoBuffer::with_default(|terminal| {
-    //     terminal.clear_screen();
-    // });
-
-    serial_println!("Hello, world! 0.1 + 0.2 = {}", 0.1 + 0.2);
-    serial_println!("Testing enabled: {}", cfg!(test));
+    println!("Hello, world! 0.1 + 0.2 = {}", 0.1 + 0.2);
+    println!("Testing enabled: {}", cfg!(test));
 
     #[cfg(test)]
     test_main();
@@ -79,20 +75,17 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     // so that we can see the error even if the OS crashes.
     serial_println!("{}", info);
 
-    // unsafe {
-    //     TerminalVideoBuffer::with_default_unchecked(|terminal| {
-    //         use core::fmt::Write;
+    unsafe {
+        TerminalVideoBuffer::with_default_unchecked(|terminal| {
+            use core::fmt::Write;
 
-    //         // First, print the panic info to the serial output
-    //         // so that we can see the error even if the OS crashes.
-    //         serial_println!("{}", info);
-    //         terminal.set_background(Colour::BLACK);
-    //         terminal.set_foreground(Colour::RED);
+            terminal.set_background(Colour::BLACK);
+            terminal.set_foreground(Colour::RED);
 
-    //         // Ignore any errors produced here - we're too far gone to recover at this point.
-    //         let _ = writeln!(terminal, "{info}");
-    //     });
-    // }
+            // Ignore any errors produced here - we're too far gone to recover at this point.
+            let _ = writeln!(terminal, "{info}");
+        });
+    }
 
     if cfg!(test) {
         qemu::exit_qemu(qemu::QemuExitCode::Success);
