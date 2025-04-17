@@ -35,6 +35,7 @@ fn main() {
     cmd.args(["-serial", "stdio"]);
     cmd.args(["-D", "debug.log"]);
     cmd.args(["-d", "int"]);
+    cmd.args(["-m", "128M"]);
     cmd.arg("-no-reboot");
     if !args.test {
         cmd.arg("-no-shutdown");

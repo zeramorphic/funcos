@@ -6,7 +6,6 @@ use crate::{
     colour::Colour,
     linalg::{rect::Rect, vec::Vec2},
     screen_font::ScreenFont,
-    serial_println,
 };
 
 /// A data structure that semantically owns a framebuffer.

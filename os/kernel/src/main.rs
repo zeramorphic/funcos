@@ -6,6 +6,7 @@
 
 pub mod colour;
 pub mod gdt;
+pub mod human_units;
 pub mod interrupts;
 pub mod linalg;
 pub mod num_traits;
@@ -16,7 +17,9 @@ pub mod serial;
 pub mod terminal_video;
 pub mod video;
 
+use bootloader_api::info::MemoryRegionKind;
 use colour::Colour;
+use human_units::HumanBytes;
 use terminal_video::TerminalVideoBuffer;
 
 const CONFIG: bootloader_api::BootloaderConfig = {
@@ -50,10 +53,35 @@ fn kmain(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
     // Print the system memory layout.
     for region in boot_info.memory_regions.iter() {
         println!(
-            "Region: {:p} - {:p} ({:?})",
-            region.start as *const (), region.end as *const (), region.kind
+            "Region: {:p} - {:p} = {}, {:?}",
+            region.start as *const (),
+            region.end as *const (),
+            HumanBytes((region.end - region.start) as usize),
+            region.kind
         );
     }
+
+    println!(
+        "Total memory: {}",
+        HumanBytes(
+            boot_info
+                .memory_regions
+                .iter()
+                .map(|region| region.end - region.start)
+                .sum::<u64>() as usize
+        )
+    );
+    println!(
+        "Total usable: {}",
+        HumanBytes(
+            boot_info
+                .memory_regions
+                .iter()
+                .filter(|region| region.kind == MemoryRegionKind::Usable)
+                .map(|region| region.end - region.start)
+                .sum::<u64>() as usize
+        )
+    );
 
     #[cfg(test)]
     {
