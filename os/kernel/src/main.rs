@@ -47,6 +47,14 @@ fn kmain(boot_info: &'static mut bootloader_api::BootInfo) -> ! {
         terminal.clear_screen();
     });
 
+    // Print the system memory layout.
+    for region in boot_info.memory_regions.iter() {
+        println!(
+            "Region: {:p} - {:p} ({:?})",
+            region.start as *const (), region.end as *const (), region.kind
+        );
+    }
+
     #[cfg(test)]
     {
         test_main();

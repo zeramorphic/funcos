@@ -14,5 +14,6 @@ macro_rules! println {
 #[doc(hidden)]
 pub fn _print(args: core::fmt::Arguments) {
     use core::fmt::Write;
+    crate::serial::_print(args);
     TerminalVideoBuffer::with_default(|terminal| terminal.write_fmt(args).unwrap());
 }

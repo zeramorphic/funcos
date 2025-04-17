@@ -9,9 +9,12 @@ pub static COM1_SERIAL: Lazy<Mutex<SerialPort>> = Lazy::new(|| {
 });
 
 #[doc(hidden)]
-pub fn _print(args: ::core::fmt::Arguments) {
+pub fn _print(args: core::fmt::Arguments) {
     use core::fmt::Write;
-    COM1_SERIAL.lock().write_fmt(args).expect("Printing to serial failed");
+    COM1_SERIAL
+        .lock()
+        .write_fmt(args)
+        .expect("Printing to serial failed");
 }
 
 /// Prints to the host through the serial interface.

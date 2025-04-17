@@ -3,11 +3,12 @@ use crate::num_traits::{Unsigned, WrappingSub, Zero};
 use super::vec::Vec2;
 
 /// A rectangle in 2D space.
+/// If used with discrete coordinates, `max` is exclusive.
 ///
 /// # Invariants
 ///
 /// `min <= max`
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Rect<T> {
     min: Vec2<T>,
     max: Vec2<T>,
@@ -21,6 +22,14 @@ impl<T> Rect<T> {
     /// Violating this condition will not immediately cause problems,
     /// but further operations down the line will rely on this property being upheld.
     pub const unsafe fn new_unchecked(min: Vec2<T>, max: Vec2<T>) -> Self {
+        Self { min, max }
+    }
+
+    pub fn new(min: Vec2<T>, max: Vec2<T>) -> Self
+    where
+        T: PartialOrd,
+    {
+        assert!(min <= max);
         Self { min, max }
     }
 

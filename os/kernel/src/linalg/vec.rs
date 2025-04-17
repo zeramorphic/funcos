@@ -1,8 +1,8 @@
-use core::ops::Mul;
+use core::{cmp::Ordering, ops::Mul};
 
 use crate::num_traits::{One, Zero};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Vec2<T> {
     pub x: T,
     pub y: T,
@@ -50,5 +50,19 @@ where
 
     fn mul(self, rhs: Vec2<U>) -> Self::Output {
         Vec2::new(self.x * rhs.x, self.y * rhs.y)
+    }
+}
+
+impl<T> PartialOrd for Vec2<T>
+where
+    T: PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        match (self.x.partial_cmp(&other.x), self.y.partial_cmp(&other.y)) {
+            (Some(Ordering::Less), Some(Ordering::Less)) => Some(Ordering::Less),
+            (Some(Ordering::Equal), Some(Ordering::Equal)) => Some(Ordering::Equal),
+            (Some(Ordering::Greater), Some(Ordering::Greater)) => Some(Ordering::Greater),
+            _ => None,
+        }
     }
 }

@@ -6,6 +6,7 @@ use crate::{
     colour::Colour,
     linalg::{rect::Rect, vec::Vec2},
     screen_font::ScreenFont,
+    serial_println,
 };
 
 /// A data structure that semantically owns a framebuffer.
@@ -70,7 +71,9 @@ impl VideoBuffer {
     ///
     /// `min.x <= max.x <= width` and `min.y <= max.x <= height`.
     pub unsafe fn draw_rect_unchecked(&mut self, rect: Rect<usize>, colour: Colour) {
-        let mut addr = self.addr;
+        let mut addr = self
+            .addr
+            .map(|ptr| ptr.byte_add(self.pitch * rect.min().y).add(rect.min().x));
         let width = rect.width();
         let height = rect.height();
         for _ in 0..height {
@@ -88,9 +91,7 @@ impl VideoBuffer {
     ///
     /// Panics unless `min.x <= max.x <= width` and `min.y <= max.x <= height`.
     pub fn draw_rect(&mut self, rect: Rect<usize>, colour: Colour) {
-        assert!(rect.min().x <= rect.max().x);
         assert!(rect.max().x <= self.width);
-        assert!(rect.min().y <= rect.max().y);
         assert!(rect.max().y <= self.height);
         unsafe {
             self.draw_rect_unchecked(rect, colour);
@@ -131,6 +132,21 @@ impl VideoBuffer {
             }
             addr = addr.map(|ptr| ptr.byte_add(self.pitch));
             glyph_data = glyph_data.add(1);
+        }
+    }
+
+    /// Slide the entire video buffer up a certain amount of lines.
+    pub fn slide_up(&mut self, lines: usize) {
+        unsafe {
+            core::ptr::copy(
+                self.addr
+                    .as_raw_ptr()
+                    .cast::<u8>()
+                    .as_ptr()
+                    .add(self.pitch * lines),
+                self.addr.as_raw_ptr().cast::<u8>().as_ptr(),
+                (self.height - lines) * self.pitch,
+            );
         }
     }
 }

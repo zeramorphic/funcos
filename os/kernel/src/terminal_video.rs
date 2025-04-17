@@ -2,7 +2,12 @@ use core::fmt::Write;
 
 use spin::Mutex;
 
-use crate::{colour::Colour, linalg::vec::Vec2, screen_font::ScreenFont, video::VideoBuffer};
+use crate::{
+    colour::Colour,
+    linalg::{rect::Rect, vec::Vec2},
+    screen_font::ScreenFont,
+    video::VideoBuffer,
+};
 
 /// This structure owns a video buffer and some fonts,
 /// and treats the entire video buffer as a terminal.
@@ -109,9 +114,21 @@ impl TerminalVideoBuffer {
     /// the screen is first moved upwards so that there is room for the new cursor position.
     pub fn put_newline(&mut self) {
         self.cursor = Vec2::new(0, self.cursor.y + 1);
-        if self.cursor.y == self.width() {
-            // TODO: Push the screen up
-            unimplemented!()
+        if self.cursor.y == self.height() {
+            self.video_buffer
+                .slide_up(self.regular_font.header().character_size as usize);
+            self.video_buffer.draw_rect(
+                Rect::new(
+                    Vec2::new(
+                        0,
+                        self.video_buffer.height()
+                            - self.regular_font.header().character_size as usize,
+                    ),
+                    Vec2::new(self.video_buffer.width(), self.video_buffer.height()),
+                ),
+                self.background,
+            );
+            self.cursor.y -= 1;
         }
     }
 
