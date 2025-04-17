@@ -14,22 +14,11 @@ fn main() {
             .join("x86_64-funcos")
             .join("debug")
             .join(name);
-        println!("cargo::rerun-if-changed={}", kernel.display());
-
-        let config = BootConfig::default();
 
         let uefi_path = out_dir.join(format!("uefi{suffix}.img"));
-        bootloader::UefiBoot::new(&kernel)
-            .set_boot_config(&config)
-            .create_disk_image(&uefi_path)
-            .unwrap();
-
         let bios_path = out_dir.join(format!("bios{suffix}.img"));
-        bootloader::BiosBoot::new(&kernel)
-            .set_boot_config(&config)
-            .create_disk_image(&bios_path)
-            .unwrap();
 
+        println!("cargo::rerun-if-changed={}", kernel.display());
         println!(
             "cargo:rustc-env=UEFI_PATH{}={}",
             suffix,
@@ -40,5 +29,21 @@ fn main() {
             suffix,
             bios_path.display()
         );
+
+        if !kernel.exists() {
+            continue;
+        }
+
+        let config = BootConfig::default();
+
+        bootloader::UefiBoot::new(&kernel)
+            .set_boot_config(&config)
+            .create_disk_image(&uefi_path)
+            .unwrap();
+
+        bootloader::BiosBoot::new(&kernel)
+            .set_boot_config(&config)
+            .create_disk_image(&bios_path)
+            .unwrap();
     }
 }
